@@ -10,17 +10,16 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class CheckPrices extends Command
 {
-    // 1. To jest nazwa, którą będziesz wpisywać w terminalu
+    // Sygnatura komendy
     protected $signature = 'prices:check';
 
-    // 2. Opis komendy
     protected $description = 'Sprawdza aktualne ceny wszystkich śledzonych produktów';
 
     public function handle()
     {
         $this->info('Rozpoczynam sprawdzanie cen przez API...');
 
-        // Pobieramy klucz z pliku .env
+        // Pobranie klucza z pliku .env
         $apiKey = env('SCRAPER_API_KEY');
 
         if (!$apiKey) {
@@ -34,44 +33,87 @@ class CheckPrices extends Command
             $this->line("Scrapuję: {$item->url}");
 
             try {
-                // Konstruujemy zapytanie do ScraperAPI.
-                // Podajemy im nasz klucz i url sklepu, który chcemy odwiedzić
+                // Konstruowanie zapytania do ScraperAPI
                 $apiUrl = "http://api.scraperapi.com?api_key={$apiKey}&url=" . urlencode($item->url);
 
-                // Wysyłamy proste zapytanie - ScraperAPI zajmie się udawaniem przeglądarki
                 $response = Http::timeout(60)->get($apiUrl);
 
                 if ($response->successful()) {
                     $crawler = new Crawler($response->body());
                     $foundPrice = null;
-
-                    // Szukamy tagów <script>, w których sklepy trzymają dane dla wyszukiwarek
                     $scripts = $crawler->filter('script[type="application/ld+json"]')->extract(['_text']);
 
                     foreach ($scripts as $script) {
-                        if (str_contains($script, '"@type":"Product"')) {
-                            $data = json_decode($script, true);
+                        $data = json_decode($script, true);
 
-                            // Sprawdzamy czy w tych danych jest cena (format różni się minimalnie w zależności od sklepu)
-                            if (isset($data['offers']['price'])) {
-                                $foundPrice = $data['offers']['price'];
-                                break;
-                            } elseif (isset($data['offers'][0]['price'])) {
-                                $foundPrice = $data['offers'][0]['price'];
-                                break;
+                        if (!$data) continue;
+
+                        // Rozwiązanie dla sklepów używających @graph
+                        $itemsToSearch = isset($data['@graph']) ? $data['@graph'] : (isset($data['@type']) ? [$data] : $data);
+
+                        if (is_array($itemsToSearch)) {
+                            foreach ($itemsToSearch as $jsonItem) {
+                                // Sprawdzenie, czy to jest Produkt
+                                $isProduct = isset($jsonItem['@type']) && (
+                                    $jsonItem['@type'] === 'Product' ||
+                                    (is_array($jsonItem['@type']) && in_array('Product', $jsonItem['@type']))
+                                );
+
+                                if ($isProduct) {
+                                    // Różne warianty zapisu ceny w JSON-LD
+                                    if (isset($jsonItem['offers']['price'])) {
+                                        $foundPrice = $jsonItem['offers']['price'];
+                                        break 2;
+                                    } elseif (isset($jsonItem['offers'][0]['price'])) {
+                                        $foundPrice = $jsonItem['offers'][0]['price'];
+                                        break 2;
+                                    }
+                                }
                             }
+                        }
+                    }
+
+                    // Jeśli JSON-LD nie zawiera informacji o cenie
+                    // użycie Wyrażeń Regularnych (Regex) do wyszukania ceny w html z JavaScriptu
+                    if (!$foundPrice) {
+                        if (preg_match('/"price"\s*:\s*([\d\.]+)/', $response->body(), $matches)) {
+                            $foundPrice = $matches[1];
+                            $this->info("Użyto koła ratunkowego (Regex) dla ceny!");
                         }
                     }
 
                     if ($foundPrice) {
                         $this->info("SUKCES! Znaleziona cena: " . $foundPrice . " PLN");
 
-                        // Zapisujemy cenę do bazy danych
+                        // Przed zapisaniem nowej ceny, sprawdzenie jaka była poprzednia w bazie
+                        $lastPriceRecord = PriceHistory::where('product_url_id', $item->id)
+                                            ->latest()
+                                            ->first();
+
+                        // Zapis nowej ceny
                         PriceHistory::create([
                             'product_url_id' => $item->id,
                             'price' => $foundPrice
                         ]);
                         $this->info("Cena została zapisana w historii!");
+
+                        // Sprawdzenie czy nowa cena jest niższa niż stara
+                        if ($lastPriceRecord && $foundPrice < $lastPriceRecord->price) {
+
+                            // Przejście po relacjach żeby znaleźć użytkownika
+                            $user = $item->product->user;
+
+                            // Wysłanie powiadomienia
+                            $user->notify(new \App\Notifications\PriceDropped(
+                                $item->product->name,
+                                $lastPriceRecord->price,
+                                $foundPrice,
+                                $item->url,
+                                $item->product->target_price // Dodany parametr
+                            ));
+
+                            $this->info("Wysłano e-mail ze spadkiem ceny do: " . $user->email);
+                        }
 
                     } else {
                         $this->error("Strona się załadowała, ale nie mogłem znaleźć ceny w danych JSON-LD.");

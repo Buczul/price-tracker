@@ -50,4 +50,12 @@ class User extends Authenticatable
     public function products() {
         return $this->hasMany(Product::class);
     }
+
+    public function urls()
+    {
+        return $this->hasManyThrough(
+            \App\Models\ProductUrl::class, // Model docelowy (Czego szukamy?)
+            \App\Models\Product::class     // Model pośredni (Przez co przechodzimy?)
+        );
+    }
 }

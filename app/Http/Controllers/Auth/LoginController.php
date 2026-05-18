@@ -25,7 +25,19 @@ class LoginController extends Controller
      *
      * @var string
      */
-    protected $redirectTo = '/home';
+    // protected $redirectTo = '/home';
+
+    public function redirectTo()
+{
+    // Sprawdzamy, czy zalogowany użytkownik ma flagę administratora
+    if (auth()->user()->is_admin) {
+        // Przekierowanie do strony głównej panelu admina (zdefiniowanej w routes/web.php)
+        return route('admin.dashboard');
+    }
+
+    // Ścieżka dla zwykłego użytkownika (np. lista śledzonych produktów)
+    return '/products';
+}
 
     /**
      * Create a new controller instance.
