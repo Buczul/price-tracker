@@ -6,21 +6,37 @@
         <div class="col-md-8">
 
             @if(session('success'))
-                <div class="alert alert-success">{{ session('success') }}</div>
+                <div class="alert alert-success shadow-sm">{{ session('success') }}</div>
             @endif
 
-            <div class="card">
-                <div class="card-header">Ustawienia profilu</div>
+            <form action="{{ route('profile.update') }}" method="POST">
+                @csrf
+                @method('PUT')
 
-                <div class="card-body">
-                    <form action="{{ route('profile.update') }}" method="POST">
-                        @csrf
-                        @method('PUT')
+                <div class="card border-0 rounded-0 mb-4 shadow">
+                    <div class="card-header border-0 rounded-0 fw-bold bg-white">Ustawienia</div>
+                    <div class="card-body">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="notifySwitch"
+                                   name="notify_via_email" value="1"
+                                   {{ $user->notify_via_email ? 'checked' : '' }}> <label class="form-check-label fw-bold" for="notifySwitch">
+                                Chcę otrzymywać powiadomienia e-mail o spadku cen
+                            </label>
+                            <p class="text-muted small mb-0">
+                                Jeśli wyłączysz tę opcję, będziesz widzieć powiadomienia tylko w aplikacji.
+                            </p>
+                        </div>
+                    </div>
+                </div>
 
+                <div class="card border-0 rounded-0 shadow">
+                    <div class="card-header border-0 rounded-0 fw-bold bg-white">Zmień dane profilu</div>
+
+                    <div class="card-body">
                         <div class="mb-3">
                             <label class="form-label">Nazwa użytkownika</label>
-                            <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', $user->name) }}" required>
-                            @error('name') <span class="text-danger small">{{ $message }}</span> @enderror
+                            <input type="text" name="nazwa" class="form-control @error('nazwa') is-invalid @enderror" value="{{ old('nazwa', $user->name) }}" required>
+                            @error('nazwa') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="mb-3">
@@ -30,27 +46,33 @@
                         </div>
 
                         <hr class="my-4">
-                        <h6 class="text-muted mb-3">Zmiana hasła (zostaw puste, jeśli nie chcesz zmieniać)</h6>
+
+                        <div class="mb-4">
+                            <label class="form-label fw-bold text-danger">Aktualne hasło (wymagane do zapisu wszystkich zmian)</label>
+                            <input type="password" name="aktualne_haslo" class="form-control @error('aktualne_haslo') is-invalid @enderror" required placeholder="Wpisz swoje obecne hasło...">
+                            @error('aktualne_haslo') <span class="text-danger small">{{ $message }}</span> @enderror
+                        </div>
+
+                        <h6 class="text-muted mb-3 mt-4">Zmiana hasła (zostaw puste, jeśli nie chcesz zmieniać)</h6>
 
                         <div class="mb-3">
                             <label class="form-label">Nowe hasło</label>
-                            <input type="password" name="password" class="form-control @error('password') is-invalid @enderror">
-                            @error('password') <span class="text-danger small">{{ $message }}</span> @enderror
+                            <input type="password" name="nowe_haslo" class="form-control @error('nowe_haslo') is-invalid @enderror">
+                            @error('nowe_haslo') <span class="text-danger small">{{ $message }}</span> @enderror
                         </div>
 
                         <div class="mb-4">
                             <label class="form-label">Potwierdź nowe hasło</label>
-                            <input type="password" name="password_confirmation" class="form-control">
+                            <input type="password" name="nowe_haslo_confirmation" class="form-control">
                         </div>
 
-                        <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
-                    </form>
+                        <button type="submit" class="btn btn-primary fw-bold px-4 text-white">Zapisz zmiany</button>
+                    </div>
                 </div>
+            </form>
 
-            </div>
-
-            <div class="card border-danger mt-4">
-                <div class="card-header bg-danger text-white fw-bold">Usuwanie konta</div>
+            <div class="card border-0 rounded-0 mt-4 shadow">
+                <div class="card-header border-0 rounded-0 bg-danger text-white fw-bold">Usuwanie konta</div>
                 <div class="card-body">
                     <p class="text-muted small">
                         Usunięcie konta jest operacją permanentną i nieodwracalną. Wszystkie Twoje śledzone produkty, skonfigurowane linki oraz cała zebrana historia cen zostaną bezpowrotnie skasowane z bazy danych.
@@ -62,8 +84,8 @@
 
                         <div class="mb-3">
                             <label class="form-label fw-bold text-danger">Potwierdź hasłem usunięcie konta:</label>
-                            <input type="password" name="delete_password" class="form-control @error('delete_password') is-invalid @enderror" placeholder="Wpisz swoje aktualne hasło" required>
-                            @error('delete_password')
+                            <input type="password" name="haslo_do_usuniecia" class="form-control @error('haslo_do_usuniecia') is-invalid @enderror" placeholder="Wpisz swoje aktualne hasło" required>
+                            @error('haslo_do_usuniecia')
                                 <span class="text-danger small d-block mt-1">{{ $message }}</span>
                             @enderror
                         </div>

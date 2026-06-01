@@ -29,10 +29,13 @@ class PriceDropped extends Notification
     // TUTAJ DZIEJE SIĘ MAGIA DECYZYJNA
     public function via(object $notifiable): array
     {
-        $channels = ['database']; // Zawsze wysyłamy do bazy (dzwoneczek)
+        $channels = ['database'];
 
-        // Jeśli użytkownik ustawił cenę docelową I nowa cena jest od niej mniejsza lub równa -> wyślij też Maila
-        if ($this->targetPrice !== null && $this->newPrice <= $this->targetPrice) {
+        // Sprawdzamy: cena docelowa + cena spadła + Opcja włączona w profilu (notify_via_email)
+        if ($this->targetPrice !== null &&
+            $this->newPrice <= $this->targetPrice &&
+            $notifiable->notify_via_email) { // <-- ZMIANA TUTAJ
+
             $channels[] = 'mail';
         }
 

@@ -9,7 +9,7 @@
                 <h2 class="mb-0">📊 Panel Administratora</h2>
                 <div class="nav nav-pills">
                     <a class="nav-link active me-2" href="{{ route('admin.dashboard') }}">Dashboard</a>
-                    <a class="nav-link text-secondary" href="{{ route('admin.users.index') }}">Użytkownicy</a>
+                    <a class="nav-link text-secondary fw-bold" href="{{ route('admin.index', 'produkty') }}">Zarządzanie Bazą Danych</a>
                 </div>
             </div>
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth; // Wymagane dla Auth::logout() w metodzie destroy
 
 class ProfileController extends Controller
 {
@@ -14,54 +15,64 @@ class ProfileController extends Controller
         ]);
     }
 
-    public function update(Request $request)
-    {
-        $user = auth()->user();
+    public function update(Request $zadanie)
+{
+    /** @var \App\Models\User $uzytkownik */
+    $uzytkownik = auth()->user();
 
-        // Walidacja danych
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed', // confirmed wymusza podanie pola password_confirmation
-        ]);
+    $reguly = [
+        'nazwa' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users,email,' . $uzytkownik->id,
+        'aktualne_haslo' => 'required|current_password',
+        'notify_via_email' => 'nullable|boolean', // <-- ZMIANA TUTAJ
+    ];
 
-        // Aktualizacja podstawowych danych
-        $user->name = $request->name;
-        $user->email = $request->email;
-
-        // Jeśli użytkownik wpisał nowe hasło, też je zmieniamy
-        if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
-        }
-
-        $user->save();
-
-        return back()->with('success', 'Twoje dane zostały zaktualizowane!');
+    if ($zadanie->filled('nowe_haslo')) {
+        $reguly['nowe_haslo'] = 'required|string|min:8|confirmed';
     }
 
-    public function destroy(Request $request)
-{
-    // 1. Wymagamy podania prawidłowego hasła do konta
-    $request->validate([
-        'delete_password' => 'required|current_password',
-    ], [
-        'delete_password.current_password' => 'Podane hasło jest nieprawidłowe.'
+    $zwalidowaneDane = $zadanie->validate($reguly, [
+        'aktualne_haslo.current_password' => 'Podane aktualne hasło jest nieprawidłowe.'
     ]);
 
-    $user = auth()->user();
+    // Aktualizacja danych
+    $uzytkownik->name = $zwalidowaneDane['nazwa'];
+    $uzytkownik->email = $zwalidowaneDane['email'];
 
-    // 2. Wylogowujemy użytkownika
-    Auth::logout();
+    // Zapisujemy preferencję powiadomień
+    $uzytkownik->notify_via_email = $zadanie->has('notify_via_email'); // <-- ZMIANA TUTAJ
 
-    // 3. Usuwamy użytkownika z bazy
-    // Jeśli w migracjach masz onDelete('cascade') przy produktach, Laravel wyczyści wszystko za Ciebie
-    $user->delete();
+    if ($zadanie->filled('nowe_haslo')) {
+        $uzytkownik->password = Hash::make($zwalidowaneDane['nowe_haslo']);
+    }
 
-    // 4. Unieważniamy sesję i odświeżamy token CSRF dla bezpieczeństwa
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
+    $uzytkownik->save();
 
-    // 5. Przekierowujemy na stronę główną
-    return redirect('/')->with('success', 'Twoje konto oraz wszystkie powiązane dane zostały trwale usunięte.');
+    return back()->with('success', 'Ustawienia profilu zostały zaktualizowane!');
 }
+
+    public function destroy(Request $zadanie)
+    {
+        // 1. Wymagamy podania prawidłowego hasła do konta
+        $zadanie->validate([
+            'haslo_do_usuniecia' => 'required|current_password',
+        ], [
+            'haslo_do_usuniecia.current_password' => 'Podane hasło jest nieprawidłowe.'
+        ]);
+
+        $uzytkownik = auth()->user();
+
+        // 2. Wylogowujemy użytkownika (teraz zadziała dzięki importowi Facades\Auth)
+        Auth::logout();
+
+        // 3. Usuwamy użytkownika z bazy
+        $uzytkownik->delete();
+
+        // 4. Unieważniamy sesję i odświeżamy token CSRF dla bezpieczeństwa
+        $zadanie->session()->invalidate();
+        $zadanie->session()->regenerateToken();
+
+        // 5. Przekierowujemy na stronę główną
+        return redirect('/')->with('success', 'Twoje konto oraz wszystkie powiązane dane zostały trwale usunięte.');
+    }
 }

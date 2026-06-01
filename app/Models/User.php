@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
@@ -54,8 +54,8 @@ class User extends Authenticatable
     public function urls()
     {
         return $this->hasManyThrough(
-            \App\Models\ProductUrl::class, // Model docelowy (Czego szukamy?)
-            \App\Models\Product::class     // Model pośredni (Przez co przechodzimy?)
+            \App\Models\ProductUrl::class,
+            \App\Models\Product::class
         );
     }
 }

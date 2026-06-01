@@ -7,50 +7,53 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Auth::routes();
+// Włączenie tras autoryzacji oraz mechanizmu weryfikacji e-mail
+Auth::routes(['verify' => true]);
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+// Wymuszenia logowania ORAZ weryfikacji e-maila (Wszystkie akcje zwykłego użytkownika)
+Route::middleware(['auth', 'verified'])->group(function () {
 
-Auth::routes();
+    // Przeniesiona trasa /home do wnętrza grupy zabezpieczonej
+    Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
 
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
-
-// Wymuszenia logowania, żeby wejść pod adresy
-Route::middleware('auth')->group(function () {
+    // Główne widoki i dodawanie
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
     Route::post('/products', [ProductController::class, 'store'])->name('products.store');
-});
 
-Route::post('/products/{product}/urls', [App\Http\Controllers\ProductController::class, 'addUrl'])->name('products.urls.store');
+    // Trasy dla całych Produktów
+    Route::put('/products/{product}', [ProductController::class, 'update'])->name('products.update');
+    Route::delete('/products/{product}', [ProductController::class, 'destroy'])->name('products.destroy');
+    Route::patch('/products/{product}/favourite', [ProductController::class, 'toggleFavourite'])->name('products.favourite');
 
-// Trasy dla całych Produktów
-Route::put('/products/{product}', [App\Http\Controllers\ProductController::class, 'update'])->name('products.update');
-Route::delete('/products/{product}', [App\Http\Controllers\ProductController::class, 'destroy'])->name('products.destroy');
+    // Trasy dla Sklepów (Linków)
+    Route::post('/products/{product}/urls', [ProductController::class, 'addUrl'])->name('products.urls.store');
+    Route::put('/urls/{url}', [ProductController::class, 'updateUrl'])->name('urls.update');
+    Route::delete('/urls/{url}', [ProductController::class, 'deleteUrl'])->name('urls.destroy');
 
-// Trasy dla pojedynczych Sklepów (Linków)
-Route::put('/urls/{url}', [App\Http\Controllers\ProductController::class, 'updateUrl'])->name('urls.update');
-Route::delete('/urls/{url}', [App\Http\Controllers\ProductController::class, 'deleteUrl'])->name('urls.destroy');
+    // NOWA TRASA - Ręczne pobieranie cen
+    Route::post('/products/{produkt}/check-prices', [ProductController::class, 'sprawdzCenyRecznie'])->name('products.check-prices');
 
-Route::post('/notifications/read', function () {
-    auth()->user()->unreadNotifications->markAsRead();
-    return back();
-})->middleware('auth')->name('notifications.read');
+    // Powiadomienia
+    Route::post('/notifications/read', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notifications.read');
 
-Route::middleware('auth')->group(function () {
+    // Profil użytkownika
     Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
     Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Główna strona zarządzania użytkownikami
-    Route::get('/users', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('users.index');
-});
 
-Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
-    // Główna strona panelu (Dashboard)
+// Grupa Administratora (wymaga logowania, weryfikacji e-mail ORAZ bycia adminem)
+Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    // Strona główna panelu (Dashboard ze statystykami)
     Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
 
-    // Dotychczasowa strona użytkowników
-    Route::get('/users', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('users.index');
+    // Dynamiczne ścieżki do zarządzania bazą danych (wszystkie tabele)
+    Route::get('/{tabela}', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('index');
+    Route::get('/{tabela}/{id}/edytuj', [App\Http\Controllers\Admin\AdminController::class, 'edit'])->name('edit');
+    Route::put('/{tabela}/{id}', [App\Http\Controllers\Admin\AdminController::class, 'update'])->name('update');
+    Route::delete('/{tabela}/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroy'])->name('destroy');
 });
