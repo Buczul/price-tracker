@@ -180,7 +180,7 @@ Kluczowym miejscem aplikacji jest główny panel użytkownika. Z poziomu lewej k
 Formularz dodawania produktu
 
 ![Formularz dodawania kolejnego sklepu](screenshots/panel_dodawnia_kolejnego_sklepu.jpg)
-Formularz dodawania kolejnego zdjęcia
+Formularz dodawania kolejnego
 
 2. **Analiza wykresów cenowych**
 
