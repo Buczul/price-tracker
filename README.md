@@ -174,18 +174,32 @@ W systemie istnieją tylko dwie role: User (zwykły użytkownik śledzący ceny)
 
 1. **Dodawanie produktu i ustalanie ceny docelowej**
 
-Kluczowym miejscem aplikacji jest główny panel użytkownika. Z poziomu lewej kolumny użytkownik określa nazwę pożądanego produktu oraz wkleja link do sklepu. Użytkownik ma pełną swobodę – może podać cenę docelową od razu, by natychmiast uaktywnić powiadomienia, lub zostawić pole puste i uzupełnić je później po zebraniu danych.
+Kluczowym miejscem aplikacji jest główny panel użytkownika. Z poziomu lewej kolumny użytkownik określa nazwę pożądanego produktu oraz wkleja link do sklepu. Użytkownik ma pełną swobodę – może podać cenę docelową od razu, by natychmiast uaktywnić powiadomienia, lub zostawić pole puste i uzupełnić je później po zebraniu danych. 
 
-![Formularz dodawania produktu](screenshots/panel_dodawnia_produktu.jpg)
 *Formularz dodawania produktu*
+![Formularz dodawania produktu](screenshots/panel_dodawnia_produktu.jpg)
 
-Po dodaniu produktu użytkownik może dodać kolejne linki z innych sklepów, aby możliwe było śledzenie cen z różnych stron. W dowolnym momencie użytkownik może przestać śledzić produkt, zmieniać cenę docelową, dodawać lub przestawać śledzić sklepy lub edytować ich etykiety oraz linki w razie błędu.
+Po dodaniu produktu użytkownik może dodać kolejne linki z innych sklepów, aby możliwe było śledzenie cen z różnych stron. W dowolnym momencie użytkownik może przestać śledzić produkt, zmieniać cenę docelową, dodawać lub przestawać śledzić sklepy lub edytować ich etykiety oraz linki w razie błędu. Zablokowana została możliwość wpisywania tekstu w polu docelowej ceny, aby dodatkowo uchronić system przed błędami.
+
+*Formularz dodawania kolejnego sklepu do produktu*
 ![Formularz dodawania kolejnego sklepu](screenshots/panel_dodawnia_kolejnego_sklepu.jpg)
-*Formularz dodawania kolejnego*
 
 2. **Analiza wykresów cenowych**
 
-Każdy dodany produkt generuje interaktywny wykres liniowy. Aplikacja gromadzi dane o cenach i układa je na osi czasu. Wykres wizualizuje historyczne trendy. Jeśli użytkownik zauważy, że dany towar ma tendencję do spadków np. w połowie miesiąca, może świadomie ustawić swoją docelową kwotę pod przyszły spadek.
+Każdy dodany produkt generuje interaktywny wykres liniowy. Aplikacja gromadzi dane o cenach i układa je na osi czasu. Wykres wizualizuje historyczne trendy. Jeśli użytkownik zauważy, że dany towar ma tendencję do spadków np. w połowie miesiąca, może świadomie ustawić swoją docelową kwotę pod przyszły spadek. Użytkownik ma również możliwość włączania lub wyłączania danych sklepów lub danych historycznych na wykresie.
+
+*Wykres produktu*
+![Wykres produktu](screenshots/wykres_produktu.jpg)
+
+Historyczne ceny to nic innego jak dane o produkcie pobrane od innych użytkowników, którzy śledzili go wcześniej. Aplikacja sprawdza czy dany linki były już w bazie i wyświetla ich najniższy poziom dla danej daty.
+
+*Wykres produktu, inni użytkownicy śledzili już ten produkt w dniu 20.05.2026 co zostało ujęte na wykresie*
+![Wykres produktu z ceną historyczną](wykres_produktu_historia.jpg)
+
+W celu ułatwienia dostępu do potrzebnych produktów, użytkownik ma możliwość filtorwania oraz wyszukiwania produktów dzięki użyciu zmodyfikowanych zapytań SQL, a także ich sortowania przy pomocy sortowania wczytanch już kolekcji. Dodatowo zaimpelentowana została funkcja dodawnia produktów do ulubionych, w celu łatwego dostępu do nich w wygodnym panelu po prawej stonie ekranu.
+
+*Panel główny z opcjami sortowania, filtrowania i wyszukiwania oraz okienko z ulubionymi produktami*
+![Panel główny wraz z okienkiem "ulubione"](panel_glowny.jpg)
 
 3. **Automatyzacja (Bot zbierający ceny)**
 
