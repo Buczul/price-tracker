@@ -3,7 +3,11 @@
 @section('content')
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-5"> <div class="card border-0 rounded-0 shadow-sm">
+        <div class="col-md-5">
+
+            {{-- Główna karta logowania --}}
+            <div class="card border-0 rounded-0 shadow-sm">
+
                 <div class="card-header border-0 rounded-0 fw-bold bg-primary text-white fs-5 py-3">
                     {{ __('Logowanie') }}
                 </div>
@@ -12,6 +16,7 @@
                     <form method="POST" action="{{ route('login') }}">
                         @csrf
 
+                        {{-- Wprowadzanie e-mail --}}
                         <div class="mb-4">
                             <label for="email" class="form-label fw-bold small text-muted">{{ __('Adres Email') }}</label>
                             <input id="email" type="email" class="form-control rounded-0 border-secondary @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required autocomplete="email" autofocus>
@@ -23,6 +28,7 @@
                             @enderror
                         </div>
 
+                        {{-- Wprowadzanie hasła --}}
                         <div class="mb-4">
                             <label for="password" class="form-label fw-bold small text-muted">{{ __('Hasło') }}</label>
                             <input id="password" type="password" class="form-control rounded-0 border-secondary @error('password') is-invalid @enderror" name="password" required autocomplete="current-password">
@@ -34,6 +40,7 @@
                             @enderror
                         </div>
 
+                        {{-- Pole wyboru Zapamiętaj mnie --}}
                         <div class="mb-4">
                             <div class="form-check">
                                 <input class="form-check-input rounded-0 border-secondary" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
@@ -43,6 +50,7 @@
                             </div>
                         </div>
 
+                        {{-- Przyciski akcji --}}
                         <div class="d-flex justify-content-between align-items-center mt-5">
                             <button type="submit" class="btn btn-primary rounded-0 fw-bold px-5 text-white">
                                 {{ __('Zaloguj') }}
@@ -54,6 +62,7 @@
                                 </a>
                             @endif
                         </div>
+
                     </form>
                 </div>
             </div>

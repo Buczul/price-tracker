@@ -9,34 +9,40 @@ use App\Models\ProductUrl;
 use App\Models\PriceHistory;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Notifications\DatabaseNotification;
 
 class AdminController extends Controller
 {
-    // Zaktualizowana, angielska nazwa metody
-    private function getModelClass($tabela)
+    /**
+     * Zwraca klasę modelu odpowiadającą wybranej tabeli administracyjnej.
+     */
+    private function getModelClass(string $table): string
     {
-        $mapowanie = [
-            'uzytkownicy' => User::class,
-            'produkty' => Product::class,
+        $mapping = [
+            'uzytkownicy'   => User::class,
+            'produkty'      => Product::class,
             'linki_sklepow' => ProductUrl::class,
-            'historie_cen' => PriceHistory::class,
-            'powiadomienia' => \Illuminate\Notifications\DatabaseNotification::class,
+            'historie_cen'  => PriceHistory::class,
+            'powiadomienia' => DatabaseNotification::class,
         ];
 
-        if (!array_key_exists($tabela, $mapowanie)) {
-            abort(404, 'Table does not exist in the admin system.');
+        if (!array_key_exists($table, $mapping)) {
+            abort(404, 'Tabela nie istnieje w systemie.');
         }
 
-        return $mapowanie[$tabela];
+        return $mapping[$table];
     }
 
+    /**
+     * Wyświetla panel administracyjny wraz z podstawowymi statystykami systemu.
+     */
     public function dashboard()
     {
         $stats = [
-            'users' => User::count(),
-            'products' => Product::count(),
-            'urls' => ProductUrl::count(),
-            'histories' => PriceHistory::count(),
+            'users'      => User::count(),
+            'products'   => Product::count(),
+            'urls'       => ProductUrl::count(),
+            'histories'  => PriceHistory::count(),
         ];
 
         $topStores = ProductUrl::select('store_name', DB::raw('count(*) as total'))
@@ -45,52 +51,64 @@ class AdminController extends Controller
             ->take(5)
             ->get();
 
-        $recentProducts = Product::with('user')->latest()->take(5)->get();
+        $recentProducts = Product::with('user')
+            ->latest()
+            ->take(5)
+            ->get();
 
-        $tabela = null;
+        $table = null;
 
-        return view('admin.dashboard', compact('stats', 'topStores', 'recentProducts', 'tabela'));
+        return view('admin.dashboard', compact('stats', 'topStores', 'recentProducts', 'table'));
     }
 
-    public function index($tabela)
+    /**
+     * Wyświetla listę rekordów wybranej tabeli z paginacją.
+     */
+    public function index(string $table)
     {
-        // Użycie nowej nazwy metody
-        $klasaModelu = $this->getModelClass($tabela);
-        $wiersze = $klasaModelu::paginate(50);
-        return view('admin.index', compact('wiersze', 'tabela'));
+        $modelClass = $this->getModelClass($table);
+        $rows = $modelClass::paginate(50);
+
+        return view('admin.index', compact('rows', 'table'));
     }
 
-    public function edit($tabela, $id)
+    /**
+     * Wyświetla formularz edycji wybranego rekordu.
+     */
+    public function edit(string $table, $id)
     {
-        // Użycie nowej nazwy metody
-        $klasaModelu = $this->getModelClass($tabela);
-        $wiersz = $klasaModelu::findOrFail($id);
-        return view('admin.edit', compact('wiersz', 'tabela'));
+        $modelClass = $this->getModelClass($table);
+        $row = $modelClass::findOrFail($id);
+
+        return view('admin.edit', compact('row', 'table'));
     }
 
-    public function update(Request $zadanie, $tabela, $id)
+    /**
+     * Aktualizuje dane wybranego rekordu w bazie danych.
+     */
+    public function update(Request $request, string $table, $id)
     {
-        // Użycie nowej nazwy metody
-        $klasaModelu = $this->getModelClass($tabela);
-        $wiersz = $klasaModelu::findOrFail($id);
+        $modelClass = $this->getModelClass($table);
+        $row = $modelClass::findOrFail($id);
 
-        $daneDoAktualizacji = $zadanie->except(['_token', '_method', 'id', 'created_at', 'updated_at']);
-        $wiersz->update($daneDoAktualizacji);
+        $dataToUpdate = $request->except(['_token', '_method', 'id', 'created_at', 'updated_at']);
+        $row->update($dataToUpdate);
 
-        return redirect()->route('admin.index', $tabela)->with('success', 'Rekord został zaktualizowany.');
+        return redirect()->route('admin.index', $table)->with('success', 'Rekord został zaktualizowany.');
     }
 
-    public function destroy($tabela, $id)
+    /**
+     * Trwale usuwa wybrany rekord z bazy danych.
+     */
+    public function destroy(string $table, $id)
     {
-        // Użycie nowej nazwy metody
-        $klasaModelu = $this->getModelClass($tabela);
-        $wiersz = $klasaModelu::findOrFail($id);
+        $modelClass = $this->getModelClass($table);
+        $row = $modelClass::findOrFail($id);
 
-        // HARD DELETE
-        if (method_exists($wiersz, 'forceDelete')) {
-            $wiersz->forceDelete();
+        if (method_exists($row, 'forceDelete')) {
+            $row->forceDelete();
         } else {
-            $wiersz->delete();
+            $row->delete();
         }
 
         return back()->with('success', 'Rekord bezpowrotnie usunięty z bazy danych.');

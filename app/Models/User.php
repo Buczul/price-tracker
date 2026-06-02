@@ -7,16 +7,21 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
+/**
+ * Model reprezentujący użytkownika w aplikacji.
+ */
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
-     * The attributes that are mass assignable.
+     * Atrybuty, które można przypisać masowo.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -25,9 +30,9 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
+     * Atrybuty, które powinny zostać ukryte podczas serializacji.
      *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
@@ -35,7 +40,7 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Get the attributes that should be cast.
+     * Pobierz atrybuty, które powinny zostać rzutowane.
      *
      * @return array<string, string>
      */
@@ -43,19 +48,30 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
     }
 
-    public function products() {
+    /**
+     * Relacja: Użytkownik ma wiele śledzonych produktów.
+     *
+     * @return HasMany
+     */
+    public function products(): HasMany
+    {
         return $this->hasMany(Product::class);
     }
 
-    public function urls()
+    /**
+     * Relacja: Użytkownik ma dostęp do wielu adresów URL swoich produktów.
+     *
+     * @return HasManyThrough
+     */
+    public function urls(): HasManyThrough
     {
         return $this->hasManyThrough(
-            \App\Models\ProductUrl::class,
-            \App\Models\Product::class
+            ProductUrl::class,
+            Product::class
         );
     }
 }

@@ -1,7 +1,11 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\AdminController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -14,7 +18,7 @@ Auth::routes(['verify' => true]);
 Route::middleware(['auth', 'verified'])->group(function () {
 
     // Przeniesiona trasa /home do wnętrza grupy zabezpieczonej
-    Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+    Route::get('/home', [HomeController::class, 'index'])->name('home');
 
     // Główne widoki i dodawanie
     Route::get('/products', [ProductController::class, 'index'])->name('products.index');
@@ -31,7 +35,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/urls/{url}', [ProductController::class, 'deleteUrl'])->name('urls.destroy');
 
     // NOWA TRASA - Ręczne pobieranie cen
-    Route::post('/products/{produkt}/check-prices', [ProductController::class, 'sprawdzCenyRecznie'])->name('products.check-prices');
+    Route::post('/products/{product}/check-prices', [ProductController::class, 'checkPricesManually'])->name('products.check-prices');
 
     // Powiadomienia
     Route::post('/notifications/read', function () {
@@ -40,20 +44,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('notifications.read');
 
     // Profil użytkownika
-    Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-    Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [App\Http\Controllers\ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 
 // Grupa Administratora (wymaga logowania, weryfikacji e-mail ORAZ bycia adminem)
 Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+
     // Strona główna panelu (Dashboard ze statystykami)
-    Route::get('/', [App\Http\Controllers\Admin\AdminController::class, 'dashboard'])->name('dashboard');
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
     // Dynamiczne ścieżki do zarządzania bazą danych (wszystkie tabele)
-    Route::get('/{tabela}', [App\Http\Controllers\Admin\AdminController::class, 'index'])->name('index');
-    Route::get('/{tabela}/{id}/edytuj', [App\Http\Controllers\Admin\AdminController::class, 'edit'])->name('edit');
-    Route::put('/{tabela}/{id}', [App\Http\Controllers\Admin\AdminController::class, 'update'])->name('update');
-    Route::delete('/{tabela}/{id}', [App\Http\Controllers\Admin\AdminController::class, 'destroy'])->name('destroy');
+    Route::get('/{table}', [AdminController::class, 'index'])->name('index');
+    Route::get('/{table}/{id}/edit', [AdminController::class, 'edit'])->name('edit');
+    Route::put('/{table}/{id}', [AdminController::class, 'update'])->name('update');
+    Route::delete('/{table}/{id}', [AdminController::class, 'destroy'])->name('destroy');
+
 });

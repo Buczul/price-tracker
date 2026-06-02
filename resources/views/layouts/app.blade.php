@@ -5,11 +5,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    {{-- CSRF Token for secure forms and AJAX requests --}}
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Laravel') }}</title>
+
+    {{-- Browser tab icon --}}
     <link rel="icon" href="{{ asset('favicon.svg') }}" type="image/svg+xml">
 
+    {{-- Google Fonts --}}
     <link rel="dns-prefetch" href="//fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=Nunito" rel="stylesheet">
 
@@ -17,10 +21,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@800&display=swap" rel="stylesheet">
 
+    {{-- Loading assets via Vite --}}
     @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 
+    {{-- Local styles for modern logotype --}}
     <style>
-        /* Styl dla nowoczesnego logotypu */
         .navbar-brand-custom {
             font-family: 'Poppins', sans-serif;
             font-weight: 800;
@@ -39,9 +44,11 @@
 
 <body>
     <div id="app">
+        {{-- GŁÓWNY PASEK NAWIGACYJNY --}}
         <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm border-bottom border-light">
             <div class="container">
 
+                {{-- Lewa strona: logo i nazwa aplikacji --}}
                 <a class="navbar-brand d-flex align-items-center gap-2 text-decoration-none" href="{{ route('products.index') }}">
                     <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#0d6efd" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
@@ -58,11 +65,13 @@
                 </button>
 
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                    <ul class="navbar-nav me-auto">
 
+                    <ul class="navbar-nav me-auto">
                     </ul>
 
                     <ul class="navbar-nav ms-auto align-items-center">
+
+                        {{-- Linki dla gości (Zaloguj się/Zarejestruj) --}}
                         @guest
                             @if (Route::has('login'))
                                 <li class="nav-item">
@@ -77,12 +86,14 @@
                             @endif
                         @else
 
+                            {{-- Link do strony głównej --}}
                             <li class="nav-item me-1 {{ Auth::user()->is_admin ? '' : 'border-end pe-3 me-3' }}">
                                 <a class="nav-link fw-bold text-dark" href="{{ route('products.index') }}">
                                     🏠 Strona główna
                                 </a>
                             </li>
 
+                            {{-- Link do panelu administracyjnego (tylko dla administratorów) --}}
                             @if (Auth::user()->is_admin)
                                 <li class="nav-item mx-2 border-start ps-3 border-end pe-3 me-3">
                                     <a class="nav-link fw-bold text-primary" href="{{ route('admin.dashboard') }}">
@@ -91,6 +102,7 @@
                                 </li>
                             @endif
 
+                            {{-- Rozwijana lista powiadomień (ikona dzwonka) --}}
                             <li class="nav-item dropdown me-3">
                                 <a id="notificationsDropdown" class="nav-link dropdown-toggle" href="#" role="button"
                                     data-bs-toggle="dropdown" aria-expanded="false">
@@ -102,8 +114,10 @@
 
                                 <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-0"
                                     style="width: 320px; max-height: 400px; overflow-y: auto;">
+
                                     <h6 class="dropdown-header bg-light fw-bold border-bottom">Ostatnie obniżki</h6>
 
+                                    {{-- Przejrzyj nieprzeczytane powiadomienia --}}
                                     @forelse(auth()->user()->unreadNotifications as $notification)
                                         <a class="dropdown-item text-wrap border-bottom py-3"
                                             href="{{ $notification->data['url'] }}" target="_blank">
@@ -114,6 +128,7 @@
                                         <div class="dropdown-item text-muted small py-3 text-center">Brak nowych powiadomień.</div>
                                     @endforelse
 
+                                    {{-- Przycisk Oznacz jako przeczytane --}}
                                     @if (auth()->user()->unreadNotifications->count() > 0)
                                         <div class="p-2 bg-light">
                                             <form action="{{ route('notifications.read') }}" method="POST" class="m-0">
@@ -125,6 +140,7 @@
                                 </div>
                             </li>
 
+                            {{-- Lista rozwijana profilu użytkownika --}}
                             <li class="nav-item dropdown">
                                 <a id="navbarDropdown" class="nav-link dropdown-toggle fw-bold" href="#" role="button"
                                     data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" v-pre>
@@ -132,18 +148,21 @@
                                 </a>
 
                                 <div class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-0" aria-labelledby="navbarDropdown">
+
                                     <a class="dropdown-item py-2" href="{{ route('profile.edit') }}">
                                         ⚙️ Ustawienia profilu
                                     </a>
 
                                     <hr class="dropdown-divider">
 
+                                    {{-- Logout --}}
                                     <a class="dropdown-item py-2 text-danger fw-bold" href="{{ route('logout') }}"
                                         onclick="event.preventDefault();
                                                      document.getElementById('logout-form').submit();">
                                         🚪 {{ __('Wyloguj') }}
                                     </a>
 
+                                    {{-- Logout (CSRF protected) --}}
                                     <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
                                         @csrf
                                     </form>
@@ -155,6 +174,7 @@
             </div>
         </nav>
 
+        {{-- Główny kontent --}}
         <main class="py-4">
             @yield('content')
         </main>

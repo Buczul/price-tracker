@@ -2,79 +2,108 @@
 
 namespace App\Console\Commands;
 
+use Exception;
 use Illuminate\Console\Command;
 use App\Models\ProductUrl;
 use App\Models\PriceHistory;
 use Illuminate\Support\Facades\Http;
 use Symfony\Component\DomCrawler\Crawler;
+use App\Notifications\PriceDropped;
 
 class CheckPrices extends Command
 {
-    // Sygnatura komendy
     protected $signature = 'prices:check';
 
     protected $description = 'Sprawdza aktualne ceny wszystkich śledzonych produktów';
 
-    public function handle()
+    public function handle(): void
     {
         $this->info('Rozpoczynam sprawdzanie cen przez API...');
 
-        // Pobranie klucza z pliku .env
-        $kluczApi = env('SCRAPER_API_KEY');
+        // Pobranie klucza autoryzacyjnego do usługi ScraperAPI
+        $apiKey = env('SCRAPER_API_KEY');
 
-        if (!$kluczApi) {
+        // Przerwanie działania zadania, jeśli konfiguracja jest niekompletna
+        if (!$apiKey) {
             $this->error('Brak klucza API! Dodaj SCRAPER_API_KEY do pliku .env');
             return;
         }
 
-        // Pobieramy aktywne linki wraz z produktem i użytkownikiem (żeby zoptymalizować wysyłkę e-maili)
-        $linki = ProductUrl::whereNull('end_of_tracking_at')
-            ->whereHas('product', function($zapytanie) {
-                $zapytanie->whereNull('end_of_tracking_at');
+           /*
+            * Pobranie wszystkich aktywnie śledzonych linków.
+            * Pomijane są produkty oraz adresy URL oznaczone jako zakończone.
+            * Dodatkowo wykonywany jest eager loading użytkownika,
+            * aby ograniczyć liczbę zapytań do bazy danych.
+            */
+        $links = ProductUrl::whereNull('end_of_tracking_at')
+            ->whereHas('product', function ($query) {
+                $query->whereNull('end_of_tracking_at');
             })
             ->with('product.user')
             ->get();
 
-        // KROK 1: Grupowanie po identycznym adresie URL
-        $pogrupowaneLinki = $linki->groupBy('url');
+        /*
+         * Grupowanie identycznych adresów URL.
+         * Dzięki temu jeden sklep jest scrapowany tylko raz,
+         * nawet jeśli ten sam produkt obserwuje wielu użytkowników.
+         */
+        $groupedLinks = $links->groupBy('url');
 
-        $this->info("Znaleziono " . $linki->count() . " linków w bazie, co daje " . $pogrupowaneLinki->count() . " unikalnych zapytań do sklepu.");
+        $this->info("Znaleziono {$links->count()} linków w bazie, co daje {$groupedLinks->count()} unikalnych zapytań do sklepu.");
 
-        // KROK 2: Główna pętla wykonująca zapytania HTTP
-        foreach ($pogrupowaneLinki as $unikalnyAdres => $modeleLinkow) {
-            $this->line("Scrapuję: {$unikalnyAdres} (Przypiętych użytkowników: " . $modeleLinkow->count() . ")");
+        foreach ($groupedLinks as $uniqueUrl => $urlModels) {
+            $this->line("Scrapuję: {$uniqueUrl} (Przypiętych użytkowników: {$urlModels->count()})");
 
             try {
-                // Konstruowanie zapytania do ScraperAPI
-                $adresApi = "http://api.scraperapi.com?api_key={$kluczApi}&url=" . urlencode($unikalnyAdres);
+                // Budowa adresu zapytania do zewnętrznego API
+                $apiUrl = "http://api.scraperapi.com?api_key={$apiKey}&url=" . urlencode($uniqueUrl);
 
-                $odpowiedz = Http::timeout(60)->get($adresApi);
+                // Pobranie kodu HTML strony produktu
+                $response = Http::timeout(60)->get($apiUrl);
 
-                if ($odpowiedz->successful()) {
-                    $przeszukiwacz = new Crawler($odpowiedz->body());
-                    $znalezionaCena = null;
-                    $skrypty = $przeszukiwacz->filter('script[type="application/ld+json"]')->extract(['_text']);
+                if ($response->successful()) {
+                    $crawler = new Crawler($response->body());
 
-                    foreach ($skrypty as $skrypt) {
-                        $dane = json_decode($skrypt, true);
+                    // Zmienna przechowująca odnalezioną cenę
+                    $foundPrice = null;
 
-                        if (!$dane) continue;
+                    /*
+                     * Większość sklepów publikuje dane produktu
+                     * w formacie JSON-LD zgodnym ze schema.org.
+                     * Jest to najbardziej niezawodne źródło ceny.
+                     */
+                    $scripts = $crawler->filter('script[type="application/ld+json"]')->extract(['_text']);
 
-                        $elementyDoPrzeszukania = isset($dane['@graph']) ? $dane['@graph'] : (isset($dane['@type']) ? [$dane] : $dane);
+                    foreach ($scripts as $script) {
+                        $data = json_decode($script, true);
 
-                        if (is_array($elementyDoPrzeszukania)) {
-                            foreach ($elementyDoPrzeszukania as $elementJson) {
-                                $czyToProdukt = isset($elementJson['@type']) && (
-                                    $elementJson['@type'] === 'Product' ||
-                                    (is_array($elementJson['@type']) && in_array('Product', $elementJson['@type']))
+                        // Pominięcie niepoprawnego JSON-a
+                        if (!$data) {
+                            continue;
+                        }
+
+                        /*
+                         * Niektóre sklepy przechowują dane produktu
+                         * bezpośrednio w obiekcie, a inne w strukturze @graph.
+                         */
+                        $elementsToSearch = isset($data['@graph']) ? $data['@graph'] : (isset($data['@type']) ? [$data] : $data);
+
+                        if (is_array($elementsToSearch)) {
+                            foreach ($elementsToSearch as $jsonElement) {
+                                // Weryfikacja czy analizowany element opisuje produkt
+                                $isProduct = isset($jsonElement['@type']) && (
+                                    $jsonElement['@type'] === 'Product' ||
+                                    (is_array($jsonElement['@type']) && in_array('Product', $jsonElement['@type']))
                                 );
 
-                                if ($czyToProdukt) {
-                                    if (isset($elementJson['offers']['price'])) {
-                                        $znalezionaCena = $elementJson['offers']['price'];
+                                if ($isProduct) {
+                                    // Najczęściej spotykana struktura ceny
+                                    if (isset($jsonElement['offers']['price'])) {
+                                        $foundPrice = $jsonElement['offers']['price'];
                                         break 2;
-                                    } elseif (isset($elementJson['offers'][0]['price'])) {
-                                        $znalezionaCena = $elementJson['offers'][0]['price'];
+                                    // Alternatywna struktura tablicowa
+                                    } elseif (isset($jsonElement['offers'][0]['price'])) {
+                                        $foundPrice = $jsonElement['offers'][0]['price'];
                                         break 2;
                                     }
                                 }
@@ -82,68 +111,88 @@ class CheckPrices extends Command
                         }
                     }
 
-                    if (!$znalezionaCena) {
-                        if (preg_match('/"price"\s*:\s*([\d\.]+)/', $odpowiedz->body(), $dopasowania)) {
-                            $znalezionaCena = $dopasowania[1];
+                    /*
+                     * Mechanizm awaryjny.
+                     * Jeśli sklep nie posiada JSON-LD,
+                     * wykonywane jest wyszukiwanie ceny przy użyciu regex.
+                     */
+                    if (!$foundPrice) {
+                        if (preg_match('/"price"\s*:\s*([\d\.]+)/', $response->body(), $matches)) {
+                            $foundPrice = $matches[1];
                             $this->info("Użyto koła ratunkowego (Regex) dla ceny!");
                         }
                     }
 
-                    if ($znalezionaCena) {
-                        $this->info("SUKCES! Znaleziona cena: " . $znalezionaCena . " PLN");
+                    if ($foundPrice) {
+                        $this->info("SUKCES! Znaleziona cena: {$foundPrice} PLN");
 
-                        // KROK 3: Zapis ceny i powiadomienia dla wszystkich śledzących ten konkretny link
-                        foreach ($modeleLinkow as $element) {
-                            $ostatniaZapisanaCena = PriceHistory::where('product_url_id', $element->id)
+                        /*
+                         * Aktualizacja wszystkich rekordów korzystających
+                         * z tego samego adresu URL.
+                         */
+                        foreach ($urlModels as $urlModel) {
+                            // Ostatnia zapisana cena produktu
+                            $lastSavedPrice = PriceHistory::where('product_url_id', $urlModel->id)
                                 ->latest()
                                 ->first();
 
-                            $cenaDocelowa = $element->product->target_price;
-                            $czyWyslacPowiadomienie = false;
+                            // Cena docelowa ustawiona przez użytkownika
+                            $targetPrice = $urlModel->product->target_price;
+                            $shouldSendNotification = false;
 
-                            if ($ostatniaZapisanaCena) {
-                                // Sprawdzamy czy cena SPADŁA w stosunku do ostatniego pomiaru.
-                                // Jeśli jest taka sama lub wzrosła, nic nie robimy z powiadomieniem.
-                                if ((float)$znalezionaCena < (float)$ostatniaZapisanaCena->price) {
-
-                                    if ($cenaDocelowa !== null) {
-                                        // Przypadek 1: Cena przebiła próg z góry na dół
-                                        if ($znalezionaCena <= $cenaDocelowa && $ostatniaZapisanaCena->price > $cenaDocelowa) {
-                                            $czyWyslacPowiadomienie = true;
+                            /*
+                             * Logika wykrywania obniżek.
+                             * Powiadomienie wysyłane jest wyłącznie,
+                             * gdy cena rzeczywiście spadła.
+                             */
+                            if ($lastSavedPrice) {
+                                if ((float)$foundPrice < (float)$lastSavedPrice->price) {
+                                    if ($targetPrice !== null) {
+                                        if ($foundPrice <= $targetPrice && $lastSavedPrice->price > $targetPrice) {
+                                            $shouldSendNotification = true;
                                         }
-                                        // Przypadek 2: Cena znów spadła, utrzymując się nadal pod progiem
-                                        elseif ($znalezionaCena <= $cenaDocelowa) {
-                                            $czyWyslacPowiadomienie = true;
+                                        /*
+                                         * Powiadomienie przy osiągnięciu
+                                         * lub przekroczeniu ceny docelowej.
+                                         */
+                                        elseif ($foundPrice <= $targetPrice) {
+                                            $shouldSendNotification = true;
                                         }
                                     } else {
-                                        // Brak ceny docelowej - powiadamiamy o każdym spadku
-                                        $czyWyslacPowiadomienie = true;
+                                        // Użytkownik nie ustawił ceny docelowej
+                                        $shouldSendNotification = true;
                                     }
                                 }
                             }
 
-                            // ZAWSZE zapisujemy cenę, niezależnie czy się zmieniła, czy nie.
+                            /*
+                             * Zapis każdej obserwacji do historii cen.
+                             * Pozwala budować wykres zmian w czasie.
+                             */
                             PriceHistory::create([
-                                'product_url_id' => $element->id,
-                                'price' => $znalezionaCena
+                                'product_url_id' => $urlModel->id,
+                                'price'          => $foundPrice
                             ]);
 
-                            if ($ostatniaZapisanaCena && (float)$znalezionaCena === (float)$ostatniaZapisanaCena->price) {
+                            if ($lastSavedPrice && (float)$foundPrice === (float)$lastSavedPrice->price) {
                                 $this->line("Cena bez zmian. Zapisano dla utrzymania ciągłości historii.");
                             } else {
-                                $this->info("Nowa cena dla: " . $element->product->name . " została zapisana do bazy.");
+                                $this->info("Nowa cena dla: {$urlModel->product->name} została zapisana do bazy.");
                             }
 
-                            if ($czyWyslacPowiadomienie) {
-                                $uzytkownik = $element->product->user;
-                                $uzytkownik->notify(new \App\Notifications\PriceDropped(
-                                    $element->product->name,
-                                    $ostatniaZapisanaCena->price,
-                                    $znalezionaCena,
-                                    $element->url,
-                                    $cenaDocelowa
+                            /*
+                             * Wysłanie powiadomienia e-mail o wykrytej obniżce.
+                             */
+                            if ($shouldSendNotification) {
+                                $user = $urlModel->product->user;
+                                $user->notify(new PriceDropped(
+                                    $urlModel->product->name,
+                                    $lastSavedPrice->price,
+                                    $foundPrice,
+                                    $urlModel->url,
+                                    $targetPrice
                                 ));
-                                $this->info("Wysłano e-mail ze spadkiem ceny do: " . $uzytkownik->email);
+                                $this->info("Wysłano e-mail ze spadkiem ceny do: {$user->email}");
                             }
                         }
                     } else {
@@ -151,11 +200,13 @@ class CheckPrices extends Command
                     }
 
                 } else {
-                    $this->error("Błąd API: {$odpowiedz->status()}");
+                    // Niepoprawna odpowiedź zwrócona przez ScraperAPI
+                    $this->error("Błąd API: {$response->status()}");
                 }
 
-            } catch (\Exception $wyjatek) {
-                $this->error("Błąd systemu: " . $wyjatek->getMessage());
+            } catch (Exception $exception) {
+                // Obsługa nieoczekiwanych błędów aplikacji
+                $this->error("Błąd systemu: " . $exception->getMessage());
             }
         }
 

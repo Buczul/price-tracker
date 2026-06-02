@@ -5,7 +5,9 @@
     <div class="row justify-content-center">
         <div class="col-md-7">
 
+            {{-- Główna karta weryfikacyjna --}}
             <div class="card border-0 rounded-0 shadow-sm">
+
                 <div class="card-header border-0 rounded-0 fw-bold bg-primary text-white fs-5 py-3">
                     {{ __('Zweryfikuj swój adres email') }}
                 </div>
@@ -14,12 +16,14 @@
 
                     <div class="display-1 mb-4">📧</div>
 
+                    {{-- Alert o pomyślnym wysłaniu łącza --}}
                     @if (session('resent'))
                         <div class="alert alert-success border-0 rounded-0 shadow-sm mb-4" role="alert">
                             {{ __('Nowy link weryfikacyjny został wysłany na twój adres email.') }}
                         </div>
                     @endif
 
+                    {{-- Główne instrukcje --}}
                     <h5 class="fw-bold mb-3">Wymagana weryfikacja adresu e-mail</h5>
 
                     <p class="text-muted mb-4">
@@ -27,6 +31,7 @@
                         {{ __('Jeżeli nie otrzymałeś linku weryfikacyjnego, kliknij przycisk poniżej, aby wysłać go ponownie.') }}
                     </p>
 
+                    {{-- Wyślij ponownie formularz linku weryfikacyjnego --}}
                     <form class="d-inline" method="POST" action="{{ route('verification.resend') }}">
                         @csrf
                         <button type="submit" class="btn btn-primary rounded-0 fw-bold px-4 py-2 text-white">
