@@ -12,10 +12,14 @@ Route::get('/', function () {
 });
 
 // Włączenie tras autoryzacji oraz mechanizmu weryfikacji e-mail
-Auth::routes(['verify' => true]);
+// Odkomentuj następną linię oraz zakomentuj kolejną aby włączyć weryfikację e-maila
+//Auth::routes(['verify' => true]);
+Auth::routes();
 
 // Wymuszenia logowania ORAZ weryfikacji e-maila (Wszystkie akcje zwykłego użytkownika)
-Route::middleware(['auth', 'verified'])->group(function () {
+// Odkomentuj następną linię oraz zakomentuj kolejną aby włączyć weryfikację e-maila
+//Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth'])->group(function () {
 
     // Przeniesiona trasa /home do wnętrza grupy zabezpieczonej
     Route::get('/home', [HomeController::class, 'index'])->name('home');
@@ -51,7 +55,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 // Grupa Administratora (wymaga logowania, weryfikacji e-mail ORAZ bycia adminem)
-Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+// Odkomentuj następną linię oraz zakomentuj kolejną aby włączyć weryfikację e-maila
+//Route::middleware(['auth', 'verified', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
 
     // Strona główna panelu (Dashboard ze statystykami)
     Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');

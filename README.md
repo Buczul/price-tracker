@@ -139,7 +139,7 @@ Konta testowe wygenerowane przez Seeder:
 
 - **Konto administratora:** Login: admintest@test.pl | Hasło: admintest1
 
-3. **Uruchomienie projektu w terminalu:**
+4. **Uruchomienie projektu w terminalu:**
 
 Aby aplikacja działała poprawnie (włączając w to frontend i zadania w tle), musisz otworzyć trzy osobne okna terminala w głównym folderze projektu i wpisać w nich odpowiednio:
 
@@ -161,6 +161,15 @@ Terminal 3 (Proces nasłuchujący harmonogramu zadań – wykonuje skrypt sprawd
     php artisan schedule:work
 ```
 Aplikacja będzie dostępna w przeglądarce pod adresem: http://localhost:8000.
+
+## Uwaga
+
+Na potrzeby testów, została wyłączona konieczność weryfikowania adresów e-mail oraz otrzymywanie powiadomień e-mail.
+Aby uruchomić te funkcjolanjności należy:
+
+- **Wprowadzić zmiany wewnątrz plików:** app/Models/User.php oraz routes/web.php, zgodnie z komentarzami umieszczonymi nad miejscami wymagającymi zmian.
+
+- **Wprowadzić zmiany wewnątrz .env** W sekcji oznaczonej komentarzem "Dane mailowe" wprowadzić dane do przechywytywania maili, (zalecane użycie narzędzia https://mailtrap.io).
 
 ## Uruchomienie projektu (user)
 
@@ -194,20 +203,72 @@ Każdy dodany produkt generuje interaktywny wykres liniowy. Aplikacja gromadzi d
 Historyczne ceny to nic innego jak dane o produkcie pobrane od innych użytkowników, którzy śledzili go wcześniej. Aplikacja sprawdza czy dany linki były już w bazie i wyświetla ich najniższy poziom dla danej daty.
 
 *Wykres produktu, inni użytkownicy śledzili już ten produkt w dniu 20.05.2026 co zostało ujęte na wykresie*<br>
-![Wykres produktu z ceną historyczną](wykres_produktu_historia.jpg)
+![Wykres produktu z ceną historyczną](screenshots/wykres_produktu_historia.jpg)
 
 W celu ułatwienia dostępu do potrzebnych produktów, użytkownik ma możliwość filtorwania oraz wyszukiwania produktów dzięki użyciu zmodyfikowanych zapytań SQL, a także ich sortowania przy pomocy sortowania wczytanch już kolekcji. Dodatowo zaimpelentowana została funkcja dodawnia produktów do ulubionych, w celu łatwego dostępu do nich w wygodnym panelu po prawej stonie ekranu.
 
 *Panel główny z opcjami sortowania, filtrowania i wyszukiwania oraz okienko z ulubionymi produktami*<br>
-![Panel główny wraz z okienkiem "ulubione"](panel_glowny.jpg)
+![Panel główny wraz z okienkiem "ulubione"](screenshots/panel_glowny.jpg)
 
 3. **Automatyzacja (Bot zbierający ceny)**
 
-Proces pozyskiwania cen jest dla użytkownika całkowicie "przezroczysty". Pod spodem działa zautomatyzowany skrypt korzystający ze ScraperAPI (omijający zabezpieczenia sklepów internetowych). Codziennie o określonej godzinie w nocy system pobiera ceny dla wszystkich przypiętych linków i weryfikuje je z cenami docelowymi.
+Od razu po dodaniu nowego produktu przez użytkownika, kiedy wykres jest jeszcze pusty, ma on możliwość po raz pierwszy sprawdzić cenę sam, odpowiednim przyciskiem pod wykresem.
+
+*Przycisk wyszukiwania ceny po raz pierwszy*<br>
+![Wyszukiwanie ceny po raz pierwszy](screenshots/pierwszy_raz.jpg)
+
+Późniejszy proces pozyskiwania cen jest dla użytkownika całkowicie "przezroczysty". Pod spodem działa zautomatyzowany skrypt korzystający ze ScraperAPI (omijający zabezpieczenia sklepów internetowych). Codziennie o określonej godzinie w nocy system pobiera ceny dla wszystkich przypiętych linków i weryfikuje je z cenami docelowymi.
+
+Proces sprawdzania cen składa się z 4 głównych etapów:
+
+- **Harmonogram zadań (CronJob):** Codziennie o godzinie 02:00 w nocy aplikacja uruchamia komendę zaplanowaną w pliku tras konsolowych. Bot pobiera z bazy danych wszystkie aktywne linki do sklepów internetowych (`ProductUrl`), które dodali użytkownicy.
+
+- **Omijanie blokad (ScraperAPI):** Sklepy internetowe często blokują automatyczne skrypty za pomocą narzędzi takich jak Cloudflare czy reCAPTCHA. Nasz bot nie uderza do sklepu bezpośrednio. Zamiast tego wysyła żądanie do ScraperAPI, które symuluje ruch z prawdziwej przeglądarki, rotuje adresy IP i zwraca naszemu systemowi czysty kod HTML strony produktowej.
+
+- **Wydobywanie ceny (Parsowanie HTML):** Aby bezbłędnie znaleźć cenę w gąszczu kodu HTML, bot stosuje podejście hybrydowe:
+   - **Metoda główna (JSON-LD):** W pierwszej kolejności skrypt parsuje stronę w poszukiwaniu ustrukturyzowanych danych `JSON-LD` (zgodnych ze standardem *schema.org/Product*). Jest to najpewniejsza metoda, gwarantująca 100% dokładności.
+   - **Koło ratunkowe (Regex / DOM):** Jeżeli sklep nie obsługuje JSON-LD, skrypt uruchamia procedurę "fallback", przeszukując drzewo DOM i używając wyrażeń regularnych do znalezienia popularnych atrybutów, takich jak `itemprop="price"` czy tagów meta (`og:price:amount`).
+
+- **Zapis i system decyzyjny:** Wyłuskana kwota jest zapisywana w tabeli `price_histories`. Na tym etapie system porównuje zapisaną kwotę z *ceną docelową* ustawioną przez użytkownika. Jeżeli nowa cena jest niższa lub równa docelowej, aplikacja wstawia zadanie do kolejki (Queue), które natychmiast generuje i wysyła powiadomienie e-mail do łowcy okazji.
 
 4. **Rola Administratora (Zarządzanie systemem)**
 
-Osoba z uprawnieniami administratora ma w menu widoczną dodatkową zakładkę do obsługi bazy. Z tego poziomu administrator widzi wszystkie rekordy ze wszystkich tabel (produkty, linki, użytkownicy) i posiada pełne uprawnienia CRUD (Create, Read, Update, Delete) do reagowania na potencjalne błędy i zarządzania środowiskiem.
+Osoba z uprawnieniami administratora od razu po przejściu do jego panelu otrzymuje przejżysty dashboard z podstawowymi danymi statystycznymi.
+
+*Dashboard administratora*<br>
+![Dashboard](screenshots/dashboard.jpg)
+
+Admin ma w menu widoczną dodatkową zakładkę do obsługi bazy. Z tego poziomu administrator widzi wszystkie rekordy ze wszystkich tabel (produkty, linki, użytkownicy) i posiada pełne uprawnienia CRUD (Create, Read, Update, Delete) do reagowania na potencjalne błędy i zarządzania środowiskiem.
+
+*Panel zarządzania bazą z poszczególnymi tabelami*<br>
+![Zarządzanie bazą](screenshots/zarzadzanie_baza.jpg)
+
+Panel zarządzania bazą danych został zaprojektowany z myślą o maksymalnej elastyczności i zachowaniu zasady DRY (Don't Repeat Yourself). Zamiast tworzyć oddzielne kontrolery, modele i widoki dla każdej pojedynczej tabeli (Użytkownicy, Produkty, Sklepy, Historie), aplikacja wykorzystuje jeden **dynamiczny system operacji CRUD**.
+
+Działanie tego mechanizmu opiera się na trzech filarach:
+
+- **Dynamiczny Routing:** Ścieżki w panelu administracyjnym przyjmują nazwę tabeli jako zmienny parametr w adresie URL (np. `/admin/{tabela}` lub `/admin/{tabela}/{id}/edycja`).
+- **Uniwersalny Kontroler:** Za całą logikę odpowiada jeden `AdminController`. Zamiast odwoływać się do konkretnych modeli Eloquent, kontroler odczytuje nazwę tabeli z adresu URL, a następnie dynamicznie pobiera jej strukturę (kolumny) oraz dane za pomocą fasady `DB`.
+-- **Generyczne widoki Blade:** Pobrane dane trafiają do jednego, uniwersalnego pliku widoku. Pętle w systemie szablonów Blade automatycznie generują nagłówki tabeli HTML oraz pola formularzy (podczas edycji) na podstawie typów i nazw kolumn zwróconych przez bazę danych.
+
+*Panel edycji danych z bazy*<br>
+![Panel edycji wiersza](screenshots/panel_edycji.jpg)
+
+5. **Responsywność oraz widok na urządzeniach mobilnych**
+
+Dzięki wykorzystniu frameworka bootstrap, aplikacja nie ma problemu z wyświetlaniem się na różnych wymiarach okienka oraz na urządzeniach mobilnych.
+
+*Strona główna w pomniejszonym oknie przeglądarki*<br>
+![Okno mniejsze 1](screenshots/okienko_mniejsze.jpg)
+
+*Wykres w pomniejszonym oknie przeglądarki*<br>
+![Okno mniejsze 2](screenshots/okienko_mniejsze2.jpg)
+
+*Strona główna w widoku mobilnym*<br>
+![Okno mobilne 1](screenshots/okienko_mobilne.jpg)
+
+*Wykres w widoku mobilnym*<br>
+![Okno mobilne 2](screenshots/okienko_mobilne2.jpg)
 
 ## Plany rozbudowy
 

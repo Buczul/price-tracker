@@ -13,7 +13,9 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 /**
  * Model reprezentujący użytkownika w aplikacji.
  */
-class User extends Authenticatable implements MustVerifyEmail
+// Odkomentuj następną linię oraz zakomentuj kolejną aby włączyć weryfikację e-maila
+//class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
