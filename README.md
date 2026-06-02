@@ -125,7 +125,7 @@ Do uruchomienia projektu w trybie deweloperskim potrzebujesz na swoim komputerze
 
 2. **Baza danych:**
 
-Ponieważ używany jest sqlite, wystarczy utworzyć pusty plik bazy w folderze bazy danych (często Laravel 13 robi to sam przy pierwszej migracji, ale w razie potrzeby wykonaj: touch database/database.sqlite).
+Ponieważ używany jest sqlite, wystarczy utworzyć pusty plik bazy w folderze bazy danych (często Laravel 13 robi to sam przy pierwszej migracji, ale w razie potrzeby wykonaj utwórz database/database.sqlite).
 
 3. **Migracje i dane początkowe:**
 
