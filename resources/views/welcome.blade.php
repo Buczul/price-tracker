@@ -16,6 +16,7 @@
 
 <div class="container-xl mt-5 pt-5">
 
+    {{-- Główny nagłówek i sekcja wezwania do akcji (Call to Action) --}}
     <div class="row justify-content-center text-center mb-5 pb-4">
         <div class="col-lg-8">
             <h1 class="display-4 fw-bold text-dark mb-3">{{ config('app.name', 'Tracker Cen') }}</h1>
@@ -23,6 +24,7 @@
                 Śledź ceny pożądanych produktów i kupuj zawsze w najlepszym momencie.
             </h3>
 
+            {{-- Przyciski nawigacyjne zależne od statusu logowania --}}
             <div class="d-flex justify-content-center gap-3">
                 @auth
                     <a href="{{ route('products.index') }}" class="btn btn-primary btn-lg shadow-sm px-5 fw-bold">
@@ -45,7 +47,10 @@
         </div>
     </div>
 
+    {{-- Sekcja informacyjna z kartami (Cechy aplikacji) --}}
     <div class="row g-4 mt-4">
+
+        {{-- Karta: Ustal cel --}}
         <div class="col-md-4">
             <div class="card shadow-sm h-100 bg-white">
                 <div class="card-body text-center p-5">
@@ -58,6 +63,7 @@
             </div>
         </div>
 
+        {{-- Karta: Automatyzacja --}}
         <div class="col-md-4">
             <div class="card shadow-sm h-100 bg-white">
                 <div class="card-body text-center p-5">
@@ -70,6 +76,7 @@
             </div>
         </div>
 
+        {{-- Karta: Powiadomienia --}}
         <div class="col-md-4">
             <div class="card shadow-sm h-100 bg-white">
                 <div class="card-body text-center p-5">
@@ -81,6 +88,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 
 </div>

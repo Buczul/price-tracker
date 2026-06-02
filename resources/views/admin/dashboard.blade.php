@@ -5,6 +5,7 @@
     <div class="row justify-content-center">
         <div class="col-md-10">
 
+            {{-- Nagłówek i nawigacja --}}
             <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
                 <h2 class="mb-0">📊 Panel Administratora</h2>
                 <div class="nav nav-pills">
@@ -13,7 +14,10 @@
                 </div>
             </div>
 
+            {{-- Sekcja Kart Statystycznych --}}
             <div class="row mb-4">
+
+                {{-- Karta zliczania użytkowników --}}
                 <div class="col-md-3 mb-3">
                     <div class="card bg-primary text-white h-100 shadow-sm">
                         <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -22,6 +26,8 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Karta liczenia produktów --}}
                 <div class="col-md-3 mb-3">
                     <div class="card bg-success text-white h-100 shadow-sm">
                         <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -30,6 +36,8 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Karta zliczania śledzonych adresów URL --}}
                 <div class="col-md-3 mb-3">
                     <div class="card bg-info text-dark h-100 shadow-sm">
                         <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -38,6 +46,8 @@
                         </div>
                     </div>
                 </div>
+
+                {{-- Karta zliczająca historie cen --}}
                 <div class="col-md-3 mb-3">
                     <div class="card bg-warning text-dark h-100 shadow-sm">
                         <div class="card-body d-flex flex-column justify-content-center text-center">
@@ -46,9 +56,13 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
+            {{-- Sekcja szczegółowych tabel --}}
             <div class="row">
+
+                {{-- Tabela najlepszych sklepów --}}
                 <div class="col-md-5 mb-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-header fw-bold bg-light">🔥 Najpopularniejsze domeny</div>
@@ -67,6 +81,7 @@
                     </div>
                 </div>
 
+                {{-- Tabela najnowszych produktów --}}
                 <div class="col-md-7 mb-4">
                     <div class="card h-100 shadow-sm">
                         <div class="card-header fw-bold bg-light">🆕 Ostatnio dodane produkty</div>
@@ -99,6 +114,7 @@
                         </div>
                     </div>
                 </div>
+
             </div>
 
         </div>
