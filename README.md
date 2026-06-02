@@ -174,13 +174,14 @@ W systemie istnieją tylko dwie role: User (zwykły użytkownik śledzący ceny)
 
 1. **Dodawanie produktu i ustalanie ceny docelowej**
 
-Kluczowym miejscem aplikacji jest główny panel użytkownika. Z poziomu lewej kolumny użytkownik określa nazwę pożądanego produktu oraz wkleja link do sklepu. Użytkownik ma pełną swobodę – może podać cenę docelową od razu, by natychmiast uaktywnić powiadomienia, lub zostawić pole puste i uzupełnić je później po zebraniu danych. Po dodaniu produktu użytkownik może dodać kolejne linki z innych sklepów, aby możliwe było śledzenie cen z różnych stron. W dowolnym momencie użytkownik może przestać śledzić produkt, zmieniać cenę docelową, dodawać lub przestawać śledzić sklepy lub edytować ich etykiety oraz linki w razie błędu.
+Kluczowym miejscem aplikacji jest główny panel użytkownika. Z poziomu lewej kolumny użytkownik określa nazwę pożądanego produktu oraz wkleja link do sklepu. Użytkownik ma pełną swobodę – może podać cenę docelową od razu, by natychmiast uaktywnić powiadomienia, lub zostawić pole puste i uzupełnić je później po zebraniu danych.
 
 ![Formularz dodawania produktu](screenshots/panel_dodawnia_produktu.jpg)
-Formularz dodawania produktu
+*Formularz dodawania produktu*
 
+Po dodaniu produktu użytkownik może dodać kolejne linki z innych sklepów, aby możliwe było śledzenie cen z różnych stron. W dowolnym momencie użytkownik może przestać śledzić produkt, zmieniać cenę docelową, dodawać lub przestawać śledzić sklepy lub edytować ich etykiety oraz linki w razie błędu.
 ![Formularz dodawania kolejnego sklepu](screenshots/panel_dodawnia_kolejnego_sklepu.jpg)
-Formularz dodawania kolejnego
+*Formularz dodawania kolejnego*
 
 2. **Analiza wykresów cenowych**
 
