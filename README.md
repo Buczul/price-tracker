@@ -102,7 +102,8 @@ Do uruchomienia projektu w trybie deweloperskim potrzebujesz na swoim komputerze
     REDIS_PASSWORD=null
     REDIS_PORT=6379
 
-    MAIL_MAILER=smtp
+# Dane mailowe
+    MAIL_MAILER=log
     MAIL_SCHEME=null
     MAIL_HOST=sandbox.smtp.mailtrap.io
     MAIL_PORT=2525
