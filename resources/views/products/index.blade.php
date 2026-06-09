@@ -57,6 +57,12 @@
                 <div class="alert alert-success shadow">{{ session('success') }}</div>
             @endif
 
+            @if (session('warning'))
+                <div class="alert alert-warning shadow fw-bold">
+                    ⏳ {{ session('warning') }}
+                </div>
+            @endif
+
             <div class="card border-0 rounded-0 shadow">
                 <div class="card-header border-0 rounded-0 fw-bold bg-primary text-white">Twoje śledzone produkty</div>
 

@@ -189,9 +189,9 @@ class ProductController extends Controller
     /**
      * Aktualizuje link do produktu.
      */
-    public function updateUrl(Request $request, ProductUrl $urlModel)
+    public function updateUrl(Request $request, ProductUrl $url)
     {
-        if ($urlModel->product->user_id !== Auth::id()) {
+        if ($url->product->user_id !== Auth::id()) {
             abort(403);
         }
 
@@ -200,7 +200,7 @@ class ProductController extends Controller
             'url'        => 'required|url',
         ]);
 
-        $urlModel->update([
+        $url->update([
             'store_name' => $request->store_name,
             'url'        => $request->url,
         ]);
@@ -211,14 +211,14 @@ class ProductController extends Controller
     /**
      * Miękkie usuwanie linku do produktu.
      */
-    public function deleteUrl(ProductUrl $urlModel)
+    public function deleteUrl(ProductUrl $url)
     {
-        if ($urlModel->product->user_id !== Auth::id()) {
+        if ($url->product->user_id !== Auth::id()) {
             abort(403);
         }
 
-        $urlModel->end_of_tracking_at = now();
-        $urlModel->save();
+        $url->end_of_tracking_at = now();
+        $url->save();
 
         return back()->with('success', 'Przestałeś śledzić ten sklep. Historia cen została zachowana dla społeczności.');
     }
@@ -253,7 +253,22 @@ class ProductController extends Controller
             return back()->with('error', 'Brak skonfigurowanego klucza ScraperAPI.');
         }
 
+        // 1. Zwiększamy tymczasowo limit czasu w PHP (dla pewności)
+        set_time_limit(120);
+
+        // 2. Odpalamy stoper
+        $startTime = time();
+        $timeoutReached = false;
+
         foreach ($product->urls as $urlModel) {
+
+            // 3. Sprawdzamy czas przed każdym sklepem.
+            // Jeśli minęło więcej niż 25 sekund, ewakuujemy się.
+            if (time() - $startTime > 25) {
+                $timeoutReached = true;
+                break;
+            }
+
             try {
                 $apiUrl = "http://api.scraperapi.com?api_key={$apiKey}&url=" . urlencode($urlModel->url);
                 $response = Http::timeout(60)->get($apiUrl);
@@ -312,6 +327,11 @@ class ProductController extends Controller
                 // Ciche pominięcie w razie błędu i przejście do kolejnego sklepu
                 continue;
             }
+        }
+
+        // 4. Obsługa komunikatu na podstawie czasu wykonania
+        if ($timeoutReached) {
+            return back()->with('warning', 'Nie udało się teraz pobrać wszystkich aktualnych cen ze sklepów. Pamiętaj jednak, że system automatycznie zaktualizuje brakujące dane dzisiaj o 2:00 w nocy. Przepraszamy za te drobne utrudnienia!');
         }
 
         return back()->with('success', 'Pierwsze ceny zostały pobrane i dodane do wykresu!');
